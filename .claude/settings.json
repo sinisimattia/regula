@@ -1,0 +1,71 @@
+{
+    "extraKnownMarketplaces": {
+        "claude-plugins-official": {
+            "source": {
+                "source": "github",
+                "repo": "anthropics/claude-plugins-official"
+            }
+        }
+    },
+    "enabledPlugins": {
+        "superpowers@claude-plugins-official": true
+    },
+    "enabledMcpjsonServers": [
+        "laravel-boost"
+    ],
+    "enableAllProjectMcpServers": true,
+    "permissions": {
+        "allow": [
+            "WebSearch",
+            "Bash(git push:*)",
+            "Bash(find:*)",
+            "Bash(grep:*)",
+            "Bash(docker compose up*)",
+            "Bash(docker compose exec*)",
+            "Bash(docker compose ps*)",
+            "Bash(composer test*)",
+            "Bash(composer lint:*)",
+            "Bash(composer lint:check:*)",
+            "Bash(composer insights*)",
+            "Bash(composer canon:check*)",
+            "Bash(git show:*)",
+            "Bash(composer show:*)",
+            "Bash(./vendor/bin/phpunit*)",
+            "Bash(php artisan migrate*)",
+            "Bash(php artisan tinker*)",
+            "Bash(php artisan test*)",
+            "Bash(php artisan make:*)",
+            "Edit",
+            "Write",
+            "mcp__laravel-boost__application-info",
+            "mcp__laravel-boost__browser-logs",
+            "mcp__laravel-boost__database-connections",
+            "mcp__laravel-boost__database-query",
+            "mcp__laravel-boost__database-schema",
+            "mcp__laravel-boost__get-absolute-url",
+            "mcp__laravel-boost__get-config",
+            "mcp__laravel-boost__last-error",
+            "mcp__laravel-boost__list-artisan-commands",
+            "mcp__laravel-boost__list-available-config-keys",
+            "mcp__laravel-boost__list-available-env-vars",
+            "mcp__laravel-boost__list-routes",
+            "mcp__laravel-boost__read-log-entries",
+            "mcp__laravel-boost__search-docs",
+            "mcp__laravel-boost__tinker"
+        ],
+        "deny": []
+    },
+    "hooks": {
+        "Stop": [
+            {
+                "matcher": "",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/standards-review-reminder.py"
+                    }
+                ]
+            }
+        ]
+    }
+}

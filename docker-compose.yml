@@ -1,0 +1,92 @@
+services:
+    app:
+        build:
+            context: .
+            dockerfile: docker/php/Dockerfile
+            target: dev
+        volumes:
+            - ./:/var/www
+            - ./docker/php/php.ini:/usr/local/etc/php/conf.d/docker-extended.ini
+        environment:
+            - HOST=0.0.0.0
+        networks:
+            - app-network
+        depends_on:
+            db:
+                condition: service_healthy
+
+    webserver:
+        image: nginx:stable-alpine
+        environment:
+            - PHP_FPM_HOST=app
+        volumes:
+            - ./:/var/www
+            - ./docker/nginx/templates:/etc/nginx/templates
+        ports:
+            - "${APP_PORT:-8080}:80"
+        networks:
+            - app-network
+        depends_on:
+            - app
+
+    # Only useful once QUEUE_DRIVER is set to `database` or `redis` in .env — the local
+    # default (`sync`) runs jobs inline and needs no worker at all.
+    worker:
+        build:
+            context: .
+            dockerfile: docker/php/Dockerfile
+            target: dev
+        command: php artisan queue:work default --queue=high,default,default-ordered,low --sleep=3
+        volumes:
+            - ./:/var/www
+            - ./docker/php/php.ini:/usr/local/etc/php/conf.d/docker-extended.ini
+        networks:
+            - app-network
+        depends_on:
+            db:
+                condition: service_healthy
+        profiles: ["workers"]
+
+    scheduler:
+        build:
+            context: .
+            dockerfile: docker/php/Dockerfile
+            target: dev
+        command: php artisan schedule:work
+        volumes:
+            - ./:/var/www
+            - ./docker/php/php.ini:/usr/local/etc/php/conf.d/docker-extended.ini
+        networks:
+            - app-network
+        depends_on:
+            db:
+                condition: service_healthy
+        profiles: ["workers"]
+
+    db:
+        image: postgres:17-alpine
+        tty: true
+        ports:
+            - "${FORWARD_DB_PORT:-5433}:5432"
+        environment:
+            POSTGRES_USER: "app"
+            POSTGRES_PASSWORD: "password"
+            POSTGRES_DB: "app"
+        volumes:
+            - ./docker/postgres/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+            - db-data:/var/lib/postgresql/data
+        networks:
+            - app-network
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U app -d app"]
+            interval: 5s
+            timeout: 5s
+            retries: 10
+
+networks:
+    app-network:
+        driver: bridge
+
+volumes:
+    db-data:
+        driver: local

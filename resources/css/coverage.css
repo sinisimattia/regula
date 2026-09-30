@@ -1,0 +1,23 @@
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&display=swap');
+
+body {
+    font-family: 'Fira Code', sans-serif;
+    font-size: 18px;
+    max-width: 1500px;
+    margin: 10px auto;
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+    border-radius: 1em;
+    border: 1px solid gainsboro;
+}
+
+ol.breadcrumb {
+    background-color: transparent;
+}
+
+
+/** Credits */
+body > div > footer > p:nth-child(4) {
+    text-align: center;
+    font-size: 14px;
+    margin-top: 50px;
+}

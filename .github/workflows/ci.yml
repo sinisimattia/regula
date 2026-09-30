@@ -1,0 +1,136 @@
+name: CI
+
+on:
+  pull_request: # Run on pull requests from any branch
+
+permissions:
+  contents: read
+
+env:
+  COMPOSER_ALLOW_SUPERUSER: 1
+
+jobs:
+  build:
+    name: "⚙️ Build"
+    runs-on: ubuntu-latest
+    container: &php-container
+      image: serversideup/php:8.4-cli
+      options: --user root
+    steps:
+      - run: apt-get update -qq && apt-get install -qy git
+      - &checkout
+        uses: actions/checkout@v7
+      - uses: actions/cache@v6
+        with:
+          path: vendor
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+      - &php-extensions
+        run: install-php-extensions bcmath gd intl exif
+      - run: composer install --no-interaction --no-autoloader --prefer-dist
+      - run: composer dump --optimize --strict-psr --no-interaction
+      - run: tar -cf vendor.tar vendor
+      - uses: actions/upload-artifact@v7
+        with:
+          name: vendor
+          path: vendor.tar
+          retention-days: 1
+
+  test:
+    name: "🧪 Tests"
+    needs: build
+    runs-on: ubuntu-latest
+    container: *php-container
+    services:
+      database:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: app
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: password
+        options: >-
+          --health-cmd "pg_isready -U app -d app"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+    env:
+      LOG_CHANNEL: "null"
+      CACHE_STORE: array
+      DB_CONNECTION: pgsql
+      DB_HOST: database
+      DB_READ_HOST: database
+      DB_PORT: 5432
+      DB_DATABASE: app
+      DB_USERNAME: app
+      DB_PASSWORD: password
+    steps:
+      - *checkout
+      - &download-vendor
+        uses: actions/download-artifact@v8
+        with:
+          name: vendor
+      - &extract-vendor
+        run: tar -xf vendor.tar && rm vendor.tar
+      - run: cp .env.example .env
+      - *php-extensions
+      - run: php -m | grep -q pdo_pgsql || { echo "pdo_pgsql is missing from the CI image"; exit 1; }
+      - run: php artisan key:generate
+      - run: php artisan optimize:clear
+      - run: php artisan migrate:fresh --force
+      - run: composer test
+
+  lint-check:
+    name: "✍️ Lint check"
+    needs: build
+    runs-on: ubuntu-latest
+    container: *php-container
+    steps:
+      - *checkout
+      - *download-vendor
+      - *extract-vendor
+      - run: composer lint:check
+
+  # PHP-CS-Fixer above owns formatting and auto-fixes it. Insights owns analysis — typing,
+  # naming, domain structure, cross-domain boundaries — and only ever reports. The rules are
+  # written down in docs/standards/; the thresholds in config/insights.php can only ratchet up.
+  insights:
+    name: "🔍 Insights"
+    needs: build
+    runs-on: ubuntu-latest
+    container: *php-container
+    steps:
+      - *checkout
+      - *download-vendor
+      - *extract-vendor
+      - *php-extensions
+      # Aggregate quality — ratchets, and can only go up.
+      - run: composer insights
+      # Per-violation gate. Insights scores the whole codebase, so one new bad name never moves
+      # the percentage; this fails the build on any single divergence from docs/standards/.
+      - run: composer canon:check
+
+  # GIT-01, checked on the branch a pull request comes from. `main` is allowed as a source for release PRs.
+  branch-name:
+    name: "🌿 Branch name"
+    runs-on: ubuntu-latest
+    env:
+      BRANCH: ${{ github.head_ref }}
+    steps:
+      - run: |
+          if ! printf '%s' "$BRANCH" | grep -Eq '^(main|(feat|fix)/[A-Z][A-Z0-9]+-[0-9]+-[a-z0-9-]+|(chore|refactor)/[a-z0-9-]+)$'; then
+            echo "Branch '$BRANCH' breaks GIT-01: use feat/<KEY>-<slug>, fix/<KEY>-<slug>, chore/<slug> or refactor/<slug>."
+            exit 1
+          fi
+
+  # Dependency advisories are their own job rather than part of the Insights gate, so a new
+  # advisory is reported on its own line instead of hiding inside a quality score.
+  security-audit:
+    name: "🔐 Dependency audit"
+    needs: build
+    runs-on: ubuntu-latest
+    container: *php-container
+    steps:
+      - *checkout
+      - *download-vendor
+      - *extract-vendor
+      - run: composer audit --format=plain

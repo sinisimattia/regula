@@ -1,0 +1,91 @@
+{
+    "name": "your-company/your-app",
+    "type": "project",
+    "description": "The backend application.",
+    "keywords": [],
+    "license": "MIT",
+    "require": {
+        "php": "^8.4",
+        "ext-pdo": "*",
+        "aws/aws-sdk-php": "^3.342",
+        "filament/filament": "^5.0",
+        "laravel/framework": "^13.0",
+        "laravel/sanctum": "^4.0",
+        "laravel/tinker": "^3.0",
+        "league/flysystem-aws-s3-v3": "^3.0",
+        "spatie/laravel-permission": "^6.0"
+    },
+    "require-dev": {
+        "barryvdh/laravel-ide-helper": "^3.7",
+        "fakerphp/faker": "^1.9.1",
+        "friendsofphp/php-cs-fixer": "^3.73",
+        "laravel/boost": "^2.8",
+        "mockery/mockery": "^1.4.4",
+        "nikic/php-parser": "^5.0",
+        "nunomaduro/collision": "^8.1",
+        "nunomaduro/phpinsights": "^2.14",
+        "phpunit/phpunit": "^12.0",
+        "spatie/laravel-ignition": "^2.12"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/",
+            "Database\\Factories\\": "database/factories/",
+            "Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/",
+            "Insights\\": "insights/"
+        }
+    },
+    "scripts": {
+        "post-autoload-dump": [
+            "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+            "@php artisan package:discover --ansi",
+            "@php artisan filament:upgrade"
+        ],
+        "post-update-cmd": [
+            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
+        ],
+        "test": [
+            "@putenv XDEBUG_MODE=off",
+            "@php vendor/bin/phpunit --no-coverage"
+        ],
+        "test:coverage": [
+            "@putenv XDEBUG_MODE=coverage",
+            "@php vendor/bin/phpunit"
+        ],
+        "lint:check": [
+            "@php vendor/bin/php-cs-fixer fix --dry-run -v"
+        ],
+        "lint:fix": [
+            "@php vendor/bin/php-cs-fixer fix -v"
+        ],
+        "insights": [
+            "@php vendor/bin/phpinsights"
+        ],
+        "canon:check": [
+            "@php artisan canon:check"
+        ]
+    },
+    "extra": {
+        "laravel": {
+            "dont-discover": []
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "process-timeout": 0,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true,
+            "php-http/discovery": true,
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

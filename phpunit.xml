@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- defaultTimeLimit is a guard against a test that hangs, not a performance budget, so it has
+     to be loose enough that a slow test on a busy machine still passes. At 10s it was neither:
+     whenever the process was short of memory it was the time limit that fired first, and the run
+     ended reporting a timeout instead of the exhaustion that caused it. -->
+<phpunit
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/12.5/phpunit.xsd"
+    bootstrap="tests/bootstrap.php"
+    backupGlobals="false"
+    colors="true"
+    processIsolation="false"
+    stopOnFailure="false"
+    enforceTimeLimit="true"
+    defaultTimeLimit="30"
+    timeoutForSmallTests="10"
+    timeoutForMediumTests="30"
+    timeoutForLargeTests="120"
+>
+    <coverage>
+        <report>
+            <html outputDirectory="coverage/html" customCssFile="resources/css/coverage.css" />
+            <xml outputDirectory="coverage/xml"/>
+        </report>
+    </coverage>
+    <!-- PHPUnit 12 moved the covered-code include/exclude out of <coverage> into <source>. -->
+    <source>
+        <include>
+            <directory suffix=".php">app/</directory>
+        </include>
+        <exclude>
+            <!-- Component types -->
+            <directory suffix=".php">app/*/Entities</directory>
+            <directory suffix=".php">app/*/*/Entities</directory>
+            <directory suffix=".php">app/*/Mail</directory>
+            <directory suffix=".php">app/*/*/Mail</directory>
+            <directory suffix=".php">app/Models</directory>
+            <directory suffix=".php">app/*/Models</directory>
+            <directory suffix=".php">app/*/*/Models</directory>
+            <directory suffix=".php">app/Exceptions</directory>
+            <directory suffix=".php">app/*/Exceptions</directory>
+            <directory suffix=".php">app/*/*/Exceptions</directory>
+            <!-- Extra -->
+            <directory suffix=".php">app/Filament</directory>
+            <directory suffix=".php">app/Logging</directory>
+        </exclude>
+    </source>
+    <testsuites>
+        <testsuite name="Feature">
+            <directory suffix="Test.php">./tests/Feature</directory>
+        </testsuite>
+        <testsuite name="Unit">
+            <directory suffix="Test.php">./tests/Unit</directory>
+        </testsuite>
+    </testsuites>
+    <php>
+        <!-- A ceiling, not a target: the suite peaks well below this. It lives here rather than
+             only in the dev image's php.ini because every environment that runs the suite has its
+             own idea of the limit, and the one that is too low does not fail with a useful message,
+             it dies partway through. -->
+        <ini name="memory_limit" value="1G"/>
+        <!-- Core -->
+        <env name="APP_DEBUG" value="true" />
+        <env name="APP_ENV" value="testing"/>
+        <!-- A run that fails badly enough to log on every test writes tens of thousands of stack
+             traces to storage/logs/laravel.log and buries its own first error in them. Nothing in
+             the suite reads the log: every logging assertion goes through Log::spy() or
+             Log::shouldReceive(), which replace the facade before anything reaches a channel.
+             Deliberately not forced, so `LOG_CHANNEL=single vendor/bin/phpunit ...` still turns the
+             log back on for whoever is debugging. -->
+        <env name="LOG_CHANNEL" value="null"/>
+        <!-- Database -->
+        <env name="DB_CONNECTION" value="pgsql" />
+        <env name="DB_PORT" value="5432" />
+        <env name="DB_DATABASE" value="testing" />
+        <!-- Services -->
+        <env name="CACHE_STORE" value="array"/>
+        <env name="SESSION_DRIVER" value="array"/>
+        <env name="QUEUE_DRIVER" value="sync" force="true"/>
+        <env name="MAIL_MAILER" value="array" force="true"/>
+        <env name="BROADCAST_CONNECTION" value="null" force="true"/>
+        <env name="BCRYPT_ROUNDS" value="4"/>
+    </php>
+</phpunit>
